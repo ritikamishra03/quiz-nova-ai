@@ -1,0 +1,75 @@
+<% content_for :title, "QuizNova AI — #{@category}" %>
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <%= link_to "← Back", root_path, class: "btn-qn-ghost btn" %>
+  <h4 class="mb-0 fw-700"><%= category_icon(@category) %> Choose Quiz Category</h4>
+</div>
+
+<%= form_with url: games_path, method: :post, data: { turbo: false } do |f| %>
+  <%= f.hidden_field :category, id: "selected_sub", value: "" %>
+
+  <!-- Sub-category grid -->
+  <div class="row g-3 mb-4">
+    <% @subcategories.each_with_index do |sub, i| %>
+      <div class="col-6 col-md-4">
+        <div class="card sub-card text-center h-100" onclick="selectSub(this, '<%= j sub %>')">
+          <div class="card-body py-4">
+            <div class="mb-2" style="font-size:2.4rem;"><%= category_icon(sub) %></div>
+            <div class="fw-600 small"><%= sub %></div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- AI Generated option -->
+  <div class="mb-4">
+    <div class="sub-card text-center" onclick="selectSub(this, 'AI Generated — <%= j @category %>')" style="padding:18px;border-radius:16px;">
+      <span class="fw-700">🤖 AI Generated Quiz — <%= @category %></span>
+      <span class="text-dim ms-2 small">(surprise topic)</span>
+    </div>
+  </div>
+
+  <!-- Game Settings -->
+  <div class="qn-card mb-4">
+    <div class="card-header px-4 py-3">⚙️ Game Settings</div>
+    <div class="card-body p-4">
+      <div class="row g-4">
+        <!-- Questions -->
+        <div class="col-md-6">
+          <div class="form-label mb-2">📋 Number of Questions</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <% [5, 10, 15, 20].each do |n| %>
+              <input type="radio" class="btn-check" name="question_limit" id="ql_<%= n %>" value="<%= n %>" <%= n == 10 ? "checked" : "" %>>
+              <label class="btn-qn-opt btn" for="ql_<%= n %>"><%= n %> Qs</label>
+            <% end %>
+          </div>
+        </div>
+        <!-- Timer -->
+        <div class="col-md-6">
+          <div class="form-label mb-2">⏱️ Time per Question</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <input type="radio" class="btn-check" name="time_limit" id="tl_0" value="" checked>
+            <label class="btn-qn-opt-gold btn" for="tl_0">No Limit</label>
+            <% [15, 30, 45, 60].each do |t| %>
+              <input type="radio" class="btn-check" name="time_limit" id="tl_<%= t %>" value="<%= t %>">
+              <label class="btn-qn-opt-gold btn" for="tl_<%= t %>"><%= t %>s</label>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center">
+    <%= f.submit "Start Quiz 🚀", class: "btn btn-qn-primary btn-lg px-5" %>
+  </div>
+<% end %>
+
+<script>
+  function selectSub(el, name) {
+    document.getElementById('selected_sub').value = name;
+    document.querySelectorAll('.sub-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>

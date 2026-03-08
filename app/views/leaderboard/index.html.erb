@@ -1,0 +1,43 @@
+<% content_for :title, "QuizNova AI — Leaderboard" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <h3 class="fw-800 mb-0">🏆 <span class="text-grad">Leaderboard</span></h3>
+  <% if user_signed_in? %>
+    <%= link_to "Play Now 🚀", root_path, class: "btn btn-qn-primary" %>
+  <% else %>
+    <%= link_to "Sign Up to Play", new_user_registration_path, class: "btn btn-qn-primary" %>
+  <% end %>
+</div>
+
+<% if @top_users.empty? %>
+  <div class="text-center py-5 text-dim">No players yet — be the first! 🎯</div>
+<% else %>
+  <% @top_users.each_with_index do |user, idx| %>
+    <%
+      rank  = idx + 1
+      medal = case rank when 1 then "🥇" when 2 then "🥈" when 3 then "🥉" else "#{rank}." end
+      me    = user_signed_in? && user == current_user
+    %>
+    <div class="lb-row <%= me ? 'lb-current' : '' %>">
+      <!-- Medal -->
+      <div style="width:36px;text-align:center;font-size:<%= rank <= 3 ? '1.6rem' : '1rem' %>;font-weight:700;color:<%= rank == 1 ? '#fcd34d' : rank == 2 ? '#d1d5db' : rank == 3 ? '#f97316' : 'rgba(255,255,255,0.5)' %>;">
+        <%= medal %>
+      </div>
+      <!-- Avatar -->
+      <div class="lb-avatar" style="<%= rank == 1 ? 'background:linear-gradient(135deg,#f59e0b,#fcd34d);' : '' %>">
+        <%= user.email[0].upcase %>
+      </div>
+      <!-- Name -->
+      <div class="flex-grow-1">
+        <div class="fw-600"><%= user.email.split("@").first %></div>
+        <% if me %>
+          <span style="font-size:0.75rem;color:#fcd34d;font-weight:600;">← You</span>
+        <% end %>
+      </div>
+      <!-- Score -->
+      <div class="fw-700 fs-5" style="color:<%= rank == 1 ? '#fcd34d' : '#a5b4fc' %>;">
+        <%= user.score %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
