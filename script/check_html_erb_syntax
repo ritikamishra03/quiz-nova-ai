@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "action_view"
+
+errors = []
+Dir.glob("app/views/**/*.html.erb").sort.each do |path|
+  source = File.read(path)
+  begin
+    compiled = ActionView::Template::Handlers::ERB.erb_implementation.new(source, trim: true).src
+    wrapped = "def __template_syntax_check;#{compiled};end"
+    RubyVM::InstructionSequence.compile(wrapped, path)
+  rescue StandardError, SyntaxError => e
+    errors << [ path, e.message ]
+  end
+end
+
+if errors.empty?
+  puts "All HTML ERB templates have valid syntax."
+  exit 0
+end
+
+puts "Invalid HTML ERB templates detected:"
+errors.each do |path, message|
+  puts "- #{path}: #{message.lines.first&.strip || message.strip}"
+end
+exit 1

@@ -1,0 +1,10 @@
+{
+  "name": "quiznova",
+  "private": true,
+  "devDependencies": {
+    "stylelint": "^16.24.0"
+  },
+  "scripts": {
+    "lint:styles": "stylelint \"app/assets/stylesheets/**/*.css\""
+  }
+}
