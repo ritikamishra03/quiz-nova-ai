@@ -1,0 +1,166 @@
+<% content_for :title, "QuizNova AI — Result" %>
+
+<% is_correct  = @result_data["is_correct"] %>
+<% points      = @result_data["points_earned"] %>
+<% game_over   = @game.finished? %>
+<% correct_count = @game.score / 10 %>
+<% wrong_count   = @game.total_questions - correct_count %>
+
+<% if game_over %>
+  <!-- Game Over Header -->
+  <div class="text-center mb-4">
+    <div style="font-size:2.8rem;margin-bottom:8px;">🎉</div>
+    <h2 class="fw-800">Quiz Completed!</h2>
+    <p class="text-dim">Here's how you did</p>
+  </div>
+
+  <!-- Score Circle -->
+  <div class="text-center mb-4">
+    <div class="d-inline-block position-relative" style="width:160px;height:160px;">
+      <%
+        r = 68; circ = (2 * Math::PI * r).round(2)
+        ratio = @game.question_limit > 0 ? correct_count.to_f / @game.question_limit : 0
+        offset = (circ * (1 - ratio)).round(2)
+      %>
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        <defs>
+          <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#4f46e5"/>
+            <stop offset="100%" style="stop-color:#ec4899"/>
+          </linearGradient>
+        </defs>
+        <circle cx="80" cy="80" r="<%= r %>" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"/>
+        <circle cx="80" cy="80" r="<%= r %>" fill="none" stroke="url(#sg)" stroke-width="12"
+                stroke-dasharray="<%= circ %>" stroke-dashoffset="<%= offset %>"
+                stroke-linecap="round" transform="rotate(-90 80 80)"/>
+      </svg>
+      <div class="position-absolute top-50 start-50 translate-middle text-center">
+        <div class="fw-800" style="font-size:2.2rem;line-height:1;"><%= correct_count %></div>
+        <div class="text-dim" style="font-size:0.9rem;">/ <%= @game.question_limit %></div>
+      </div>
+    </div>
+    <p class="mt-2 fw-600 text-dim">Your Score</p>
+
+    <div class="d-flex justify-content-center gap-4 mt-3">
+      <div style="color:#6ee7b7;font-weight:600;">✅ Correct Answers: <strong><%= correct_count %></strong></div>
+      <div style="color:#fca5a5;font-weight:600;">❌ Wrong Answers: <strong><%= wrong_count %></strong></div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="d-flex gap-3 justify-content-center flex-wrap mb-5">
+    <%= button_to "🔄 Retry Quiz", games_path,
+        method: :post, class: "btn btn-qn-ghost",
+        params: { category: @game.category, question_limit: @game.question_limit, time_limit: @game.time_limit },
+        data: { turbo: false } %>
+    <%= link_to "📂 Choose Category", root_path, class: "btn btn-qn-purple" %>
+    <button class="btn btn-qn-primary" onclick="shareScore()">📤 Share Score</button>
+  </div>
+
+<% else %>
+  <!-- Per-question result -->
+  <div class="qn-alert-<%= is_correct ? 'success' : 'danger' %> fs-5 mb-4">
+    <% if is_correct %>
+      ✅ <strong>Correct!</strong> +<%= points %> points earned!
+    <% else %>
+      ❌ <strong>Wrong!</strong> Correct answer: <strong><%= @result_data["correct_answer"] %></strong>
+    <% end %>
+  </div>
+<% end %>
+
+<!-- Progress -->
+<div class="d-flex justify-content-between small text-dim mb-1">
+  <span>Progress</span><span><%= @game.total_questions %> / <%= @game.question_limit %></span>
+</div>
+<div class="qn-progress progress mb-4"><div class="progress-bar" style="width:<%= (@game.total_questions.to_f / @game.question_limit * 100).round %>%;"></div></div>
+
+<!-- Question recap -->
+<div class="qn-card mb-4">
+  <div class="card-header px-4 py-2">Question Recap</div>
+  <div class="card-body px-4 py-4">
+    <p class="fw-600 mb-3"><%= @question_data["question"] %></p>
+    <% @question_data["options"].each do |option| %>
+      <%
+        ok  = option == @result_data["correct_answer"]
+        bad = option == @result_data["submitted_answer"] && !ok
+        css = ok ? "correct-ans" : (bad ? "wrong-ans" : "")
+      %>
+      <div class="answer-option <%= css %>" style="cursor:default;">
+        <span class="fw-500"><%= option %></span>
+        <span class="ms-auto"><% if ok %>✅<% end %><% if bad %>❌<% end %></span>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Score summary -->
+<div class="qn-card mb-4">
+  <div class="card-body px-4 py-3">
+    <div class="row text-center">
+      <div class="col-4">
+        <div class="fw-700 fs-4 text-grad-gold"><%= current_user.score %></div>
+        <div class="text-dim small">Total Score</div>
+      </div>
+      <div class="col-4">
+        <div class="fw-700 fs-4" style="color:#a5b4fc;"><%= @game.score %></div>
+        <div class="text-dim small">Game Score</div>
+      </div>
+      <div class="col-4">
+        <div class="fw-700 fs-4"><%= @game.total_questions %> / <%= @game.question_limit %></div>
+        <div class="text-dim small">Answered</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% unless game_over %>
+  <div class="d-flex gap-3 flex-wrap">
+    <%= button_to "Next Question →", next_question_game_path(@game), method: :post,
+        class: "btn btn-qn-purple btn-lg", data: { turbo: false } %>
+    <%= link_to "New Game", root_path, class: "btn btn-qn-ghost btn-lg" %>
+  </div>
+<% end %>
+
+<!-- Sounds + Confetti -->
+<% if game_over %>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script>
+    confetti({ particleCount: 180, spread: 80, origin: { y: 0.55 },
+      colors: ['#4f46e5','#9333ea','#f59e0b','#ec4899','#10b981'] });
+    setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } }), 600);
+  </script>
+<% end %>
+
+<script>
+  (function() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    <% if is_correct %>
+    [[523,0],[659,0.15],[784,0.30]].forEach(([f,d]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.32, ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+d+0.4);
+      o.start(ctx.currentTime+d); o.stop(ctx.currentTime+d+0.4);
+    });
+    <% else %>
+    [[280,0],[200,0.22]].forEach(([f,d]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sawtooth'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.28, ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+d+0.38);
+      o.start(ctx.currentTime+d); o.stop(ctx.currentTime+d+0.38);
+    });
+    <% end %>
+  })();
+
+  function shareScore() {
+    const text = `I scored <%= correct_count %>/<%= @game.question_limit %> on QuizNova AI! 🤖🎯 Category: <%= @game.category %>`;
+    if (navigator.share) {
+      navigator.share({ title: 'QuizNova AI Score', text });
+    } else {
+      navigator.clipboard.writeText(text).then(() => alert('Score copied to clipboard!'));
+    }
+  }
+</script>
